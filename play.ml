@@ -75,7 +75,7 @@ let valid_moves board color =
 
 let select_move board color ms =
 
-  
+  aaaa
   Random.int (List.length ms)
 
 (**********************************************************************************************************)
