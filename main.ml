@@ -92,6 +92,7 @@ let rec wait_start (ic,oc) =
 and my_move (ic,oc) board color hist oname _mytime =
   let pmove = play board color in
   let board = doMove board pmove color in
+  let _ = print_board board in
   let _ = output_command oc (Move pmove) in
   let _ = if !opt_verbose then
       (print_endline "--------------------------------------------------------------------------------";
@@ -109,6 +110,7 @@ and op_move (ic,oc) board color hist oname mytime =
   match input_command ic with
     | Move omove ->
       let board = doMove board omove (opposite_color color) in
+      let _ = print_board board in
       let _ = if !opt_verbose then
           (print_endline "--------------------------------------------------------------------------------";
            print_endline ("OMove: " ^ string_of_move omove ^ " " ^ string_of_color color);

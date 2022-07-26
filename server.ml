@@ -25,7 +25,7 @@ let opt_players_time = ref 600
 let opt_timeout = ref 60000
 let opt_byoyomi = ref 500
 let opt_players_number = ref 2
-let opt_rounds = ref 300
+let opt_rounds = ref 1 (*aaaaaaaaaaaaaaaaaaaaaaaaa*)
 let opt_concurrency = ref 1
 
 (* 文字列のpadding *)
@@ -368,7 +368,7 @@ and play round round_max gamenum game_max bc wc pipewrite =
       match m with
         | Mv (x, y) ->
             pass_flg := false;
-            if is_valid_move !board color_curr (x, y) then
+            if is_valid_move !board color_curr (x-1, y-1) then
               (* 許す *)
               begin
                 board := doMove !board m color_curr;
