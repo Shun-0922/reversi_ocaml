@@ -1,2 +1,0 @@
-commandParser.cmi : \
-    command.cmo
