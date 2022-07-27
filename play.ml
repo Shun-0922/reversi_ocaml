@@ -2,7 +2,7 @@ open Color
 open Command
 open Int64
 
-
+let counter = ref 4
 type board = int64 * int64 (*黒、白*)
 
 (**********************************************************************************************************)
@@ -88,21 +88,6 @@ let valid_moves board color = (*おける座標を返す*)
   List.filter (is_valid_move board color)
     (mix ls ls)
 
-(**********************************************************************************************************)
-
-let select_move board color ms = 0
-  (*Random.int (List.length ms)*)
-
-(**********************************************************************************************************)
-
-let play board color =
-  let ms = valid_moves board color in
-    if ms = [] then
-      Pass
-    else
-      let (i,j) = List.nth ms (select_move board color ms) in
-	Mv (i+1,j+1)
-
 let count board color = (*board上のcolorのマスの数を返す*)
   let s = ref 0 in
     for i=0 to 7 do
@@ -111,7 +96,6 @@ let count board color = (*board上のcolorのマスの数を返す*)
       done
     done;
     !s
-
 
 let print_board board =
   print_endline " |A B C D E F G H ";
@@ -124,6 +108,56 @@ let print_board board =
     print_endline ""
   done;
   print_endline "  (X: Black,  O: White)"
+
+
+(**********************************************************************************************************)
+
+let eval_board board color ms =
+  count board color
+
+
+let rec negamax board color (i,j) depth =
+  let new_board = doMove board (Mv (i+1,j+1)) color in
+  let new_ms = valid_moves new_board (3-color) in
+  if new_ms = [] || depth = 0 then -1*(eval_board new_board (3-color) new_ms)
+  else -1*(negamax' new_board (opposite_color color) new_ms (depth - 1))
+
+and negamax' board color ms depth =
+  match ms with
+  | [] -> -100000000
+  | y :: ys -> 
+    let eval_y = negamax board color y depth in
+    let eval_ys = negamax' board color ys depth in
+    if eval_y > eval_ys then eval_y else eval_ys
+
+
+let rec select_move board color ms = 
+  match ms with
+  | [] -> ((-1,-1),-100000000)
+  | y :: ys -> 
+    let depth = if !counter < 54 then 2 else 64 - !counter in 
+    let eval_y = negamax board color y depth in
+    let (ys_res, m) = select_move board color ys in
+    print_int(eval_y);print_string(" ");
+    if eval_y > m then (y,eval_y) else (ys_res,m)
+    
+
+
+(**********************************************************************************************************)
+
+let play board color =
+  print_int(!counter);print_string(" <-counter\n");
+  let ms = valid_moves board color in
+    print_int(eval_board board color ms);print_string("\n");
+    print_int(List.length(ms));print_string("\n");
+    if ms = [] then
+      Pass
+    else
+      let ((i,j),_) = select_move board color ms in
+	Mv (i+1,j+1)
+
+
+
 
 
 let report_result board =

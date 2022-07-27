@@ -77,6 +77,7 @@ let string_of_scores scores =
 let print_scores scores = print_string (string_of_scores scores)
 
 let rec wait_start (ic,oc) =
+  counter := 4;
   match input_command ic with
       Bye scores ->
         print_scores scores
@@ -92,6 +93,9 @@ let rec wait_start (ic,oc) =
 and my_move (ic,oc) board color hist oname _mytime =
   let pmove = play board color in
   let board = doMove board pmove color in
+  (match pmove with
+    | Mv (_) -> counter := !counter + 1
+    | _ -> ());
   let _ = print_board board in
   let _ = output_command oc (Move pmove) in
   let _ = if !opt_verbose then
@@ -110,6 +114,9 @@ and op_move (ic,oc) board color hist oname mytime =
   match input_command ic with
     | Move omove ->
       let board = doMove board omove (opposite_color color) in
+      (match omove with
+      | Mv (_) -> counter := !counter + 1
+      | _ -> ());
       let _ = print_board board in
       let _ = if !opt_verbose then
           (print_endline "--------------------------------------------------------------------------------";
