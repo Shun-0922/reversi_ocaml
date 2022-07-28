@@ -112,13 +112,12 @@ let print_board board =
 
 (**********************************************************************************************************)
 
-let eval_position (i,j) =
+let eval_position (i,j) = (*各マスの評価*)
   let i' = if i > 3 then (7-i) else i in
   let j' = if j > 3 then (7-j) else j in 
   let i'' = if j' > i' then j' else i' in
   let j'' = if j' > i' then i' else j' in
   match (i'',j'') with
-  | (0,0) -> 100
   | (1,0) -> -40
   | (2,0) -> 20
   | (3,0) -> 5
@@ -127,6 +126,40 @@ let eval_position (i,j) =
   | (2,2) -> 5
   | (3,2) -> 1
   | _ -> 0
+
+let eval_permanent_stones_line board color (i,j) (di,dj) param = (*辺の片側の確定石の評価*)
+  if not (is_piece_on_board board color (i,j)) then 0
+  else 
+    if not (is_piece_on_board board color (i+di,j+dj)) then (50*param)
+    else
+      if not (is_piece_on_board board color (i+2*di,j+2*dj)) then (150*param + 40)
+      else
+        if not (is_piece_on_board board color (i+3*di,j+3*dj)) then (250*param + 20)
+        else (350*param + 15)
+
+let eval_permanent_stones_bg27 board color (i,j) (ei,ej) param = (*bg27の確定石*)
+  if (is_piece_on_board board color (i,j)) &&
+     (is_piece_on_board board color (i+ei,j)) &&
+     (is_piece_on_board board color (i,j+ej)) &&
+     (is_piece_on_board board color (i+ei,j+ej)) &&
+     (is_piece_on_board board color (i+2*ei,j)) &&
+     (is_piece_on_board board color (i,j*2+ej)) then (80 + param*100)
+  else 0
+
+
+let eval_permanent_stones board color param = (*確定石*)
+  eval_permanent_stones_line board color (0,0) (1,0) param +
+  eval_permanent_stones_line board color (0,0) (0,1) param +
+  eval_permanent_stones_line board color (7,0) (-1,0) param +
+  eval_permanent_stones_line board color (7,0) (0,1) param +
+  eval_permanent_stones_line board color (0,7) (0,-1) param +
+  eval_permanent_stones_line board color (0,7) (1,0) param +
+  eval_permanent_stones_line board color (7,7) (-1,0) param +
+  eval_permanent_stones_line board color (7,7) (0,-1) param +
+  eval_permanent_stones_bg27 board color (0,0) (1,1) param +
+  eval_permanent_stones_bg27 board color (7,0) (-1,1) param +
+  eval_permanent_stones_bg27 board color (0,7) (1,-1) param +
+  eval_permanent_stones_bg27 board color (7,7) (-1,-1) param 
 
 
 let eval_board board color ms =
@@ -141,7 +174,9 @@ let eval_board board color ms =
         if is_piece_on_board board (3-color) (i,j) then s := !s - (eval_position (i,j))
       done
     done;
-    
+    let param = 100 in
+    s := !s + (eval_permanent_stones board color param);
+    s := !s - (eval_permanent_stones board (3-color) param);
     !s
 
 
