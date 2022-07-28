@@ -112,8 +112,37 @@ let print_board board =
 
 (**********************************************************************************************************)
 
+let eval_position (i,j) =
+  let i' = if i > 3 then (7-i) else i in
+  let j' = if j > 3 then (7-j) else j in 
+  let i'' = if j' > i' then j' else i' in
+  let j'' = if j' > i' then i' else j' in
+  match (i'',j'') with
+  | (0,0) -> 100
+  | (1,0) -> -40
+  | (2,0) -> 20
+  | (3,0) -> 5
+  | (1,1) -> -80
+  | (_,1) -> -1
+  | (2,2) -> 5
+  | (3,2) -> 1
+  | _ -> 0
+
+
 let eval_board board color ms =
-  count board color
+  let s = ref 0 in
+    for i=0 to 7 do
+      for j=0 to 7 do
+        if is_piece_on_board board color (i,j) then s := !s + (eval_position (i,j))
+      done
+    done;
+    for i=0 to 7 do
+      for j=0 to 7 do
+        if is_piece_on_board board (3-color) (i,j) then s := !s - (eval_position (i,j))
+      done
+    done;
+    
+    !s
 
 
 let rec negamax board color (i,j) depth =
@@ -130,17 +159,45 @@ and negamax' board color ms depth =
     let eval_ys = negamax' board color ys depth in
     if eval_y > eval_ys then eval_y else eval_ys
 
-
 let rec select_move board color ms = 
   match ms with
   | [] -> ((-1,-1),-100000000)
   | y :: ys -> 
-    let depth = if !counter < 54 then 2 else 64 - !counter in 
-    let eval_y = negamax board color y depth in
+    let eval_y = negamax board color y 2 in
     let (ys_res, m) = select_move board color ys in
-    print_int(eval_y);print_string(" ");
     if eval_y > m then (y,eval_y) else (ys_res,m)
-    
+
+
+
+let eval_board_yomikiri board color ms =
+  2*(count board color) - !counter    
+
+let rec negamax_yomikiri board color (i,j) depth =
+  let new_board = doMove board (Mv (i+1,j+1)) color in
+  let new_ms = valid_moves new_board (3-color) in
+  if new_ms = [] || depth = 0 then -1*(eval_board_yomikiri new_board (3-color) new_ms)
+  else -1*(negamax_yomikiri' new_board (opposite_color color) new_ms (depth - 1))
+  
+and negamax_yomikiri' board color ms depth =
+  match ms with
+  | [] -> -100000000
+  | y :: ys -> 
+    let eval_y = negamax_yomikiri board color y depth in
+    if eval_y > 0 then eval_y else begin
+      let eval_ys = negamax_yomikiri' board color ys depth in
+      if eval_y > eval_ys then eval_y else eval_ys
+    end
+  
+let rec select_move_yomikiri board color ms =
+  match ms with
+  | [] -> ((-1,-1),-100000000)
+  | y :: ys -> 
+    let eval_y = negamax_yomikiri board color y (64 - !counter) in
+    if eval_y > 0 then (y,eval_y) else begin
+      let (ys_res, m) = select_move_yomikiri board color ys in
+      if eval_y > m then (y,eval_y) else (ys_res,m)
+    end
+
 
 
 (**********************************************************************************************************)
@@ -148,12 +205,12 @@ let rec select_move board color ms =
 let play board color =
   print_int(!counter);print_string(" <-counter\n");
   let ms = valid_moves board color in
-    print_int(eval_board board color ms);print_string("\n");
-    print_int(List.length(ms));print_string("\n");
+    print_int(eval_board board color ms);print_string(" <-eval_board\n");
+    print_int(List.length(ms));print_string(" <-valid_moves\n");
     if ms = [] then
       Pass
     else
-      let ((i,j),_) = select_move board color ms in
+      let ((i,j),_) = if !counter < 52 then (select_move board color ms) else (select_move_yomikiri board color ms) in
 	Mv (i+1,j+1)
 
 
