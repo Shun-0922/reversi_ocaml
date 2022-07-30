@@ -10,6 +10,10 @@ let opt_player_name = ref "Anon."
 let opt_port        = ref 3000
 let opt_host        = ref "localhost"
 
+let p1_count = ref 0
+let p2_count = ref 0
+
+
 let options =
   [("-H", Arg.Set_string opt_host, "host name (default = local host)");
    ("-p", Arg.Set_int    opt_port, "port number (default = 3000)");
@@ -129,6 +133,9 @@ and op_move (ic,oc) board color hist oname mytime =
       failwith "Invalid Command"
 
 and proc_end (ic,oc) board color hist oname wl n m r =
+  p1_count := !p1_count + n;
+  p2_count := !p2_count + m;
+  print_int(!p1_count);print_string("   ");print_int(!p2_count);print_string(" <-accumulative score\n");(*erase*)
   let _ = match wl with
     | Win  -> printf "You win! (%d vs. %d) -- %s.\n" n m r
     | Lose -> printf "You lose! (%d vs. %d) -- %s.\n" n m r
