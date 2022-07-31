@@ -25,7 +25,7 @@ let opt_players_time = ref 600
 let opt_timeout = ref 60000
 let opt_byoyomi = ref 500
 let opt_players_number = ref 2
-let opt_rounds = ref 1(*aaaaaaaaaaaaaaaaaaaaaaaaa*)
+let opt_rounds = ref 10(*aaaaaaaaaaaaaaaaaaaaaaaaa*)
 let opt_concurrency = ref 1
 
 (* 文字列のpadding *)
