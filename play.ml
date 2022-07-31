@@ -2,9 +2,10 @@ open Color
 open Command
 open Int64
 
+let time_counter = ref 0
 let counter = ref 4
-let node_counter = ref 0
 type board = int64 * int64 (*黒、白*)
+exception Exp
 
 (**********************************************************************************************************)
 
@@ -72,7 +73,7 @@ let is_effective board color (i,j) = (*i,jに置いたときに何かをひっ�
 let is_valid_move' board color (i,j) = (*i,jにおけるかどうかを返す*)
   i >= 0 && i < 8 && j >= 0 && j < 8 && is_piece_on_board board black (i,j) = false && is_piece_on_board board white (i,j) = false && is_effective board color (i,j)
 
-let is_valid_move board color (i,j) =
+let is_valid_move board color (i,j) = (*server用*)
   is_valid_move' board color (i-1,j-1)
 
 let doMove board com color = (*boardとcommandとcolorを受け取って実行した新しいboardを返す*)
@@ -83,14 +84,14 @@ let doMove board com color = (*boardとcommandとcolorを受け取って実行�
 	let ms = flippable_indices board color (i-1,j-1) in
 	flip_board board color ((i-1,j-1)::ms)
 
-let mix xs ys = (*直積*)
-  List.concat (List.map (fun x -> List.map (fun y -> (x,y)) ys) xs)
 
 
 let valid_moves board color = (*おける座標を返す*)
-  let ls = [0;1;2;3;4;5;6;7] in
-  List.filter (is_valid_move' board color)
-    (mix ls ls)
+  let ls = [(0,0);(7,7);(7,0);(0,7);(0,2);(2,7);(0,5);(5,0);(7,2);(2,0);(7,5);(5,7);(0,3);(0,4);(3,0);(4,0);
+            (7,3);(7,4);(4,7);(3,7);(2,2);(2,5);(5,2);(5,5);(5,4);(5,3);(2,4);(4,2);(2,3);(3,2);(4,5);(3,5);
+            (1,3);(3,1);(3,6);(6,3);(1,5);(5,1);(6,5);(5,6);(1,2);(2,6);(6,2);(2,1);(1,4);(4,1);(4,6);(6,4);
+            (1,0);(0,1);(6,0);(0,6);(7,1);(1,7);(7,6);(6,7);(1,1);(6,6);(1,6);(6,1)] in
+  List.filter (is_valid_move' board color) ls
 
 let count board color = (*board上のcolorのマスの数を返す*)
   let s = ref 0 in
@@ -100,9 +101,20 @@ let count board color = (*board上のcolorのマスの数を返す*)
       done
     done;
     !s
-
+(*
+let count board color = 
+  match board with 
+  | (black_board, white_board) ->
+    let x1 = (if color = black then black_board else white_board) in
+    let x2 = sub x1 (logand (shift_right_logical x1 1) 0x5555555555555555L) in
+    let x3 = to_int (add (logand x2 0x3333333333333333L) (logand (shift_right_logical x2 2) 0x3333333333333333L)) in
+    let x4 = Int.logand (x3 + (Int.shift_right_logical x3 4)) 0x0f0f0f0f0f0f0f0f in
+    let x5 = x4 + (Int.shift_right_logical x4 8) in
+    let x6 = x5 + (Int.shift_right_logical x5 16) in
+    let x7 = x6 + (Int.shift_right_logical x6 32) in
+    Int.logand x7 0x000000000000007f
+*)
 let print_board board =
-  print_int(!node_counter);print_string(" <- node_counter\n");
   print_endline " |A B C D E F G H ";
   print_endline "-+----------------";
   for j=0 to 7 do
@@ -168,7 +180,6 @@ let eval_permanent_stones board color param = (*確定石*)
 
 
 let eval_board board color ms =
-  node_counter := !node_counter + 1;
   let s = ref 0 in
     for i=0 to 7 do
       for j=0 to 7 do
@@ -180,7 +191,7 @@ let eval_board board color ms =
         if is_piece_on_board board (3-color) (i,j) then s := !s - (eval_position (i,j))
       done
     done;
-    let param = 1 in
+    let param = 2 in
     s := !s + (eval_permanent_stones board color param);
     s := !s - (eval_permanent_stones board (3-color) param);
     let ms_2 = valid_moves board (3-color) in
@@ -190,7 +201,7 @@ let eval_board board color ms =
     !s
 
 
-let eval_board_yomikiri board color ms =
+let eval_board_yomikiri board color =
   2*(count board color) - !counter    
 
 
@@ -232,7 +243,7 @@ and nega_alpha' board color ms depth alpha beta =
 
 
 let rec nega_alpha_yomikiri board color ms depth alpha beta =
-  if depth = 0 || ms = [] then ((-1,-1),eval_board_yomikiri board color ms)
+  if depth = 0 || ms = [] then ((-1,-1),eval_board_yomikiri board color)
   else nega_alpha_yomikiri' board color ms depth alpha beta
 
 and nega_alpha_yomikiri' board color ms depth alpha beta =
@@ -254,15 +265,12 @@ and nega_alpha_yomikiri' board color ms depth alpha beta =
 (**********************************************************************************************************)
 
 let play board color =
-  print_int(!counter);print_string(" <-counter\n");
-  let ms = move_ordering board color (valid_moves board color) in
-    print_int(eval_board board color ms);print_string(" <-eval_board\n");
-    print_int(List.length(ms));print_string(" <-valid_moves\n");
+  let ms = valid_moves board color in
     if ms = [] then
       Pass
     else
-      let ((i,j),_) = if !counter < 54 then (nega_alpha board color ms 2 (-1000000) 1000000)
-      else (nega_alpha_yomikiri board color ms (64 - !counter) (0) 1000000) in
+      let ((i,j),_) = if !counter < 49 then (nega_alpha board color ms 3 (-1000000) 1000000)
+      else (nega_alpha_yomikiri board color (move_ordering board color ms) (64 - !counter) (0) 1000000) in
 	Mv (i+1,j+1)
 
 

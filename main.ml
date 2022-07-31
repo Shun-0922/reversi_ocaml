@@ -10,8 +10,8 @@ let opt_player_name = ref "Anon."
 let opt_port        = ref 3000
 let opt_host        = ref "localhost"
 
-let p1_count = ref 0
-let p2_count = ref 0
+
+
 
 
 let options =
@@ -100,7 +100,6 @@ and my_move (ic,oc) board color hist oname _mytime =
   (match pmove with
     | Mv (_) -> counter := !counter + 1
     | _ -> ());
-  let _ = print_board board in
   let _ = output_command oc (Move pmove) in
   let _ = if !opt_verbose then
       (print_endline "--------------------------------------------------------------------------------";
@@ -108,6 +107,7 @@ and my_move (ic,oc) board color hist oname _mytime =
        print_board board) in
   match input_command ic with
     | Ack mytime' ->
+      time_counter := mytime';
       op_move (ic,oc) board color (PMove pmove :: hist) oname mytime'
     | End (wl,n,m,r) ->
       proc_end (ic,oc) board color hist oname wl n m r
@@ -121,7 +121,6 @@ and op_move (ic,oc) board color hist oname mytime =
       (match omove with
       | Mv (_) -> counter := !counter + 1
       | _ -> ());
-      let _ = print_board board in
       let _ = if !opt_verbose then
           (print_endline "--------------------------------------------------------------------------------";
            print_endline ("OMove: " ^ string_of_move omove ^ " " ^ string_of_color color);
@@ -133,9 +132,6 @@ and op_move (ic,oc) board color hist oname mytime =
       failwith "Invalid Command"
 
 and proc_end (ic,oc) board color hist oname wl n m r =
-  p1_count := !p1_count + n;
-  p2_count := !p2_count + m;
-  print_int(!p1_count);print_string("   ");print_int(!p2_count);print_string(" <-accumulative score\n");(*erase*)
   let _ = match wl with
     | Win  -> printf "You win! (%d vs. %d) -- %s.\n" n m r
     | Lose -> printf "You lose! (%d vs. %d) -- %s.\n" n m r
